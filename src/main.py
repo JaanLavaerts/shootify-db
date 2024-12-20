@@ -1,6 +1,9 @@
 import requests
 from parse import parse_events
-from write_to_sql import write_to_sqlite
+from write_to_postgres import write_to_postgres
+from write_to_sqlite import write_to_sqlite
+import os
+from dotenv import load_dotenv
 
 AUTH_HEADER = "Basic YmFza2V0amFhbkBnbWFpbC5jb206YmFza2V0MjM6QjA5QjBFNDAtMTE2OC00RD8hCLUIzQ0QtOTI8MUVDMzdCMjg3"
 
@@ -43,10 +46,22 @@ def fetch_game_events(guid):
 
 
 if __name__ == "__main__":
-    guid = "BVBL24259100LAHSE21CGK"
+    guid = "BVBL24259100LAHSE21CIG"
     
     game_details = fetch_game_details(guid)
     game_players = fetch_game_players(guid)
     game_events = parse_events(fetch_game_events(guid))
 
-    write_to_sqlite(game_players, game_events, game_details, "game_stats.db")
+
+    # Load environment variables from .env
+    load_dotenv()
+
+    db_config = {
+        "dbname": os.getenv("DB_NAME"),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+        "host": os.getenv("DB_HOST"),
+        "port": os.getenv("DB_PORT")
+    }
+
+    write_to_postgres(game_players, game_events, game_details, db_config)

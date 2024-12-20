@@ -1,7 +1,6 @@
 from typing import Dict, Optional, Set, List, Union
 import re
 
-
 class PlayerStats:
     def __init__(self):
         self.totalPoints = 0
