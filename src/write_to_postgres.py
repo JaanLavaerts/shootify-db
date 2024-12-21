@@ -247,6 +247,8 @@ def write_to_postgres(game_players, game_events, game_details, db_config):
         for player_guid in players_to_update:
             update_player_averages(cursor, player_guid)
 
+        print(f"Inserted game {game_events.guid} into database.")
+
         conn.commit()
 
     except psycopg2.Error as e:

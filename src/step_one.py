@@ -46,22 +46,21 @@ def fetch_game_events(guid):
 
 
 if __name__ == "__main__":
-    guid = "BVBL24259100LAHSE21CIG"
-    
-    game_details = fetch_game_details(guid)
-    game_players = fetch_game_players(guid)
-    game_events = parse_events(fetch_game_events(guid))
+    with open("./src/played_games.txt", "r") as file:
+        load_dotenv()
 
+        db_config = {
+            "dbname": os.getenv("DB_NAME"),
+            "user": os.getenv("DB_USER"),
+            "password": os.getenv("DB_PASSWORD"),
+            "host": os.getenv("DB_HOST"),
+            "port": os.getenv("DB_PORT")
+        }
 
-    # Load environment variables from .env
-    load_dotenv()
+        for line in file:
+            guid = line.strip()
+            game_details = fetch_game_details(guid)
+            game_players = fetch_game_players(guid)
+            game_events = parse_events(fetch_game_events(guid))
 
-    db_config = {
-        "dbname": os.getenv("DB_NAME"),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "host": os.getenv("DB_HOST"),
-        "port": os.getenv("DB_PORT")
-    }
-
-    write_to_postgres(game_players, game_events, game_details, db_config)
+            write_to_postgres(game_players, game_events, game_details, db_config)
