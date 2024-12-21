@@ -14,6 +14,7 @@ req_headers = {
 
 def fetch_game_details(guid):
     req = requests.get("https://vblcb.wisseq.eu/VBLCB_WebService/data/MatchByWedGuid?issguid=" + guid)
+    req.raise_for_status()  # Raise an exception for HTTP errors
     return req.json()[0]["doc"]
 
 def fetch_game_players(guid):
@@ -59,8 +60,15 @@ if __name__ == "__main__":
 
         for line in file:
             guid = line.strip()
-            game_details = fetch_game_details(guid)
-            game_players = fetch_game_players(guid)
-            game_events = parse_events(fetch_game_events(guid))
-
-            write_to_postgres(game_players, game_events, game_details, db_config)
+            try:
+                print(f"Processing GUID: {guid}")
+                game_details = fetch_game_details(guid)
+                game_players = fetch_game_players(guid)
+                game_events = parse_events(fetch_game_events(guid))
+                write_to_postgres(game_players, game_events, game_details, db_config)
+                print(f"Successfully processed GUID: {guid}")
+            except Exception as e:
+                print(f"Error processing GUID {guid}: {e}")
+                with open("./src/error_games.txt", "a") as error_file:
+                    error_file.write(guid + "\n")
+                continue
