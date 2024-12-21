@@ -68,6 +68,10 @@ def get_todays_played_game_guids():
     for region in REGIONS:
         games = check_games(region)
         result.extend(games)
+
+    if len(result) == 0:
+        with open("./src/error_games.txt", "a") as f:
+            f.write("No games played yet on " + today + "\n")
     return result
 
 if __name__ == "__main__":
@@ -83,8 +87,18 @@ if __name__ == "__main__":
 
         guids = get_todays_played_game_guids()
         for guid in guids:
-            game_details = fetch_game_details(guid)
-            game_players = fetch_game_players(guid)
-            game_events = parse_events(fetch_game_events(guid))
+            try:
+                game_details = fetch_game_details(guid)
+                game_players = fetch_game_players(guid)
+                game_events = parse_events(fetch_game_events(guid))
 
-            write_to_postgres(game_players, game_events, game_details, db_config)
+                write_to_postgres(game_players, game_events, game_details, db_config)
+
+                with open("./src/played_games.txt", "a") as f:
+                    f.write(guid + "\n")
+            except Exception as e:
+                print(f"Error processing GUID {guid}: {e}")
+                with open("./src/error_games.txt", "a") as error_file:
+                    error_file.write(guid + "\n")
+                continue
+            
