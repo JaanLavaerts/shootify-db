@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS Games (
     home_team_name TEXT NOT NULL,
     away_team_guid TEXT NOT NULL,
     away_team_name TEXT NOT NULL,
-    date TEXT NOT NULL,
+    date DATE NOT NULL,
     poule_guid TEXT NOT NULL,
     poule_name TEXT NOT NULL,
     played TEXT NOT NULL,
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS Games (
 CREATE TABLE IF NOT EXISTS Players (
     player_guid TEXT PRIMARY KEY,
     name TEXT,
+    birthdate DATE,
     total_games INTEGER DEFAULT 0,
     avg_points REAL DEFAULT 0,
     avg_one_pointers REAL DEFAULT 0,

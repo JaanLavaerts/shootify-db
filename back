@@ -232,7 +232,7 @@ def write_to_postgres(game_players, game_events, game_details, db_config):
                     cursor.execute("""
                         INSERT INTO Players (
                             player_guid, name, birthdate, total_games
-                        ) VALUES (%s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s)
                         ON CONFLICT (player_guid) DO NOTHING;
                     """, (player_guid, player_name, player_birthdate, 1))
 
