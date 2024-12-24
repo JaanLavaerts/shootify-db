@@ -59,7 +59,7 @@ def initialize_database(db_config: dict):
             home_team_name TEXT NOT NULL,
             away_team_guid TEXT NOT NULL,
             away_team_name TEXT NOT NULL,
-            date DATE NOT NULL,
+            date DATE,
             poule_guid TEXT NOT NULL,
             poule_name TEXT NOT NULL,
             played TEXT NOT NULL,
@@ -139,7 +139,11 @@ def write_to_postgres(game_players, game_events, game_details, db_config):
     game_events.guid = game_details.get("guid", "")
 
     try:
-        date_object = datetime.strptime(game_events.datumString, "%d-%m-%Y").date()
+        try:
+            date_object = datetime.strptime(game_events.datumString, "%d-%m-%Y").date()
+        except ValueError:
+            date_object = None
+
         # Insert game data
         cursor.execute("""
             INSERT INTO Games (
@@ -160,49 +164,6 @@ def write_to_postgres(game_players, game_events, game_details, db_config):
             game_events.beginTijd.replace(".", ":"),
         ))
 
-        # Insert quarter statistics for teams
-        teams_data = [
-            (game_events.teamThuisGUID, game_events.homeTeam),
-            (game_events.teamUitGUID, game_events.awayTeam)
-        ]
-
-        for team_guid, team_stats in teams_data:
-            quarter_stats = {
-                1: {'total_points': 0, 'one_pointers': 0, 'two_pointers': 0, 'three_pointers': 0, 'fouls': 0},
-                2: {'total_points': 0, 'one_pointers': 0, 'two_pointers': 0, 'three_pointers': 0, 'fouls': 0},
-                3: {'total_points': 0, 'one_pointers': 0, 'two_pointers': 0, 'three_pointers': 0, 'fouls': 0},
-                4: {'total_points': 0, 'one_pointers': 0, 'two_pointers': 0, 'three_pointers': 0, 'fouls': 0}
-            }
-
-            for player in team_stats.players.values():
-                for quarter, stats in player.quarters.items():
-                    if quarter not in range(1, 5):
-                        continue
-                    quarter_stats[quarter]['total_points'] += stats.get('totalPoints', 0)
-                    quarter_stats[quarter]['one_pointers'] += stats.get('onePointers', 0)
-                    quarter_stats[quarter]['two_pointers'] += stats.get('twoPointers', 0)
-                    quarter_stats[quarter]['three_pointers'] += stats.get('threePointers', 0)
-                    quarter_stats[quarter]['fouls'] += stats.get('fouls', 0)
-
-            for quarter in range(1, 5):
-                stats = quarter_stats[quarter]
-                cursor.execute("""
-                    INSERT INTO Quarters (
-                        game_guid, team_guid, quarter, total_points, one_pointers,
-                        two_pointers, three_pointers, fouls
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (game_guid, team_guid, quarter) DO NOTHING;
-                """, (
-                    game_events.guid,
-                    team_guid,
-                    quarter,
-                    stats['total_points'],
-                    stats['one_pointers'],
-                    stats['two_pointers'],
-                    stats['three_pointers'],
-                    stats['fouls']
-                ))
-
         # Process player details
         detail_lookup = {detail["RelGUID"]: detail for detail in game_players["TtDeel"] + game_players["TuDeel"]}
         cursor.execute("SELECT player_guid, total_games FROM Players")
@@ -215,8 +176,12 @@ def write_to_postgres(game_players, game_events, game_details, db_config):
             for player_id, player_stats in team_stats.players.items():
                 player_guid = player_stats.RelGUID
                 player_name = detail_lookup.get(player_guid, {}).get("Naam", "Unknown")
-                player_birthdate = detail_lookup.get(player_guid, {}).get("GebDat", None).split(" ")[0] if detail_lookup.get(player_guid, {}).get("GebDat", None) else None
-                player_birthdate = datetime.strptime(player_birthdate, "%d-%m-%Y").date() if player_birthdate else None
+
+                birthdate_string = detail_lookup.get(player_guid, {}).get("GebDat", None)
+                try:
+                    player_birthdate = datetime.strptime(birthdate_string.split(" ")[0], "%d-%m-%Y").date() if birthdate_string else None
+                except ValueError:
+                    player_birthdate = None
 
                 # Add player to update set
                 players_to_update.add(player_guid)
